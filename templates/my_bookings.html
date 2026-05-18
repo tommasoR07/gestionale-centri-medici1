@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Le mie prenotazioni</h2>
+    <div class="text-muted small">Qui trovi tutte le visite prenotate dal tuo account.</div>
+  </div>
+  <a class="btn btn-outline-primary" href="{{ url_for('bookings') }}">Nuova prenotazione</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if booked %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Ospedale</th>
+              <th>Specialità</th>
+              <th>Data</th>
+              <th>Ora</th>
+              <th>Prezzo</th>
+              <th class="text-end"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in booked %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ s.hospital.name }}</div>
+                  <div class="small text-muted">{{ s.hospital.area }}</div>
+                </td>
+                <td>{{ s.specialty.area }}: {{ s.specialty.name }}</td>
+                <td>{{ s.day.strftime("%d/%m/%Y") }}</td>
+                <td class="fw-semibold">{{ s.at.strftime("%H:%M") }}</td>
+                <td>€ {{ "%.2f"|format(s.price_cents/100) }}</td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('cancel', slot_id=s.id) }}">
+                    <button class="btn btn-outline-danger btn-sm" type="submit">Cancella</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-light border mb-0">Non hai ancora prenotazioni.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

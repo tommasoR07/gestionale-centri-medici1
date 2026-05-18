@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Prenotazioni</h2>
+    <div class="text-muted small">Seleziona ospedale, specialità e data per vedere gli slot disponibili.</div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('my_bookings') }}">Le mie prenotazioni</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <form method="post" class="row g-3">
+      {{ form.hidden_tag() }}
+      <div class="col-12 col-lg-5">
+        {{ form.hospital_id.label(class="form-label") }}
+        {{ form.hospital_id(class="form-select") }}
+      </div>
+      <div class="col-12 col-lg-5">
+        {{ form.specialty_id.label(class="form-label") }}
+        {{ form.specialty_id(class="form-select") }}
+      </div>
+      <div class="col-12 col-lg-2">
+        {{ form.day.label(class="form-label") }}
+        {{ form.day(class="form-control") }}
+      </div>
+      <div class="col-12">
+        {{ form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if selected %}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0">Slot disponibili</h5>
+        <span class="text-muted small">Solo gli slot <strong>disponibili</strong> sono prenotabili.</span>
+      </div>
+
+      {% if slots %}
+        <div class="table-responsive mt-3">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ora</th>
+                <th>Prezzo</th>
+                <th class="text-end"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in slots %}
+                <tr>
+                  <td>{{ s.day.strftime("%d/%m/%Y") }}</td>
+                  <td class="fw-semibold">{{ s.at.strftime("%H:%M") }}</td>
+                  <td>€ {{ "%.2f"|format(s.price_cents/100) }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{{ url_for('book_slot', slot_id=s.id) }}">
+                      <button class="btn btn-success btn-sm" type="submit">Prenota</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-muted mb-0">Se due utenti prenotano lo stesso slot contemporaneamente, solo uno riesce.</p>
+      {% else %}
+        <div class="alert alert-light border mt-3 mb-0">
+          Nessuno slot disponibile per i filtri selezionati.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

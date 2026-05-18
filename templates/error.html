@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body p-4">
+    <h2 class="mb-2">Errore {{ code }}</h2>
+    <p class="text-muted mb-3">{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">Torna alla home</a>
+  </div>
+</div>
+{% endblock %}

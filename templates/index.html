@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card shadow-sm overflow-hidden mb-4">
+  <div class="card-body p-4 p-md-5">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-8">
+        <h1 class="display-6 fw-semibold mb-2">Gestionale Centri Medici</h1>
+        <p class="lead mb-3">
+          Prenota una visita scegliendo <strong>ospedale</strong>, <strong>specialità</strong>, <strong>data</strong> e <strong>ora</strong>.
+          Ogni visita ha un <strong>prezzo</strong> visibile prima della prenotazione.
+        </p>
+
+        {% if not current_user.is_authenticated %}
+          <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-primary" href="{{ url_for('register') }}">Crea un account</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('login') }}">Ho già un account</a>
+          </div>
+        {% else %}
+          {% if current_user.role == "admin" %}
+            <a class="btn btn-primary" href="{{ url_for('admin_dashboard') }}">Vai all'Area Ospedale</a>
+          {% else %}
+            <a class="btn btn-primary" href="{{ url_for('bookings') }}">Vai alle prenotazioni</a>
+          {% endif %}
+        {% endif %}
+      </div>
+      <div class="col-lg-4 text-center">
+        <div class="p-4 rounded-4 bg-primary bg-opacity-10">
+          <div class="fs-1">🩺</div>
+          <div class="fw-semibold">Prenota in pochi click</div>
+          <div class="text-muted small">Gestione concorrenza inclusa</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Funzioni utente</h5>
+        <ul class="mb-0">
+          <li>Registrazione e login</li>
+          <li>Ricerca slot per ospedale/specialità/data</li>
+          <li>Prenotazione con rimozione immediata dello slot</li>
+          <li>Elenco “Le mie prenotazioni” + cancellazione</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Funzioni ospedale (Admin)</h5>
+        <ul class="mb-0">
+          <li>Accesso con account <code>adminNomeOspedale</code> (password <code>123456</code>)</li>
+          <li>Visualizza slot del proprio ospedale</li>
+          <li>Segna slot <strong>occupati</strong> o <strong>non disponibili</strong></li>
+          <li>Modifica prezzo visite ed elimina slot</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

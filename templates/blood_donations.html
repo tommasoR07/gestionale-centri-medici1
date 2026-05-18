@@ -1,0 +1,284 @@
+{% extends "layout.html" %}
+{% block content %}
+<style>
+  .donations-page .section-title {
+    letter-spacing: -0.02em;
+  }
+
+  .donations-page .chart-card {
+    border: 0;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .donations-page .chart-card .card-body {
+    padding: 1.25rem;
+  }
+
+  .donations-page .chart-title {
+    font-weight: 700;
+    margin-bottom: .15rem;
+  }
+
+  .donations-page .chart-subtitle {
+    color: #6c757d;
+    font-size: .875rem;
+    margin-bottom: 1rem;
+  }
+
+  .donations-page .metric-card {
+    border: 0;
+    border-radius: 1rem;
+  }
+
+  .donations-page .chart-wrap {
+    position: relative;
+    min-height: 320px;
+  }
+
+  .donations-page .chart-wrap.chart-wrap-top-centers {
+    min-height: 520px;
+  }
+
+  .donations-page .filter-box {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 999px;
+    padding: .45rem .55rem .45rem .85rem;
+    box-shadow: 0 .25rem .9rem rgba(0,0,0,.05);
+  }
+
+  @media (max-width: 768px) {
+    .donations-page .filter-box {
+      width: 100%;
+      border-radius: 1rem;
+      align-items: stretch !important;
+    }
+
+    .donations-page .filter-box select,
+    .donations-page .filter-box button {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="donations-page">
+  <div class="d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-3 mb-4">
+    <div>
+      <h2 class="section-title mb-1">Donazioni del sangue</h2>
+      <div class="text-muted small">Sezione consultabile in sola lettura: i dati non sono modificabili da questa pagina.</div>
+    </div>
+
+    <form method="get" action="{{ url_for('blood_donations') }}" class="filter-box d-flex flex-column flex-md-row gap-2 align-items-md-center">
+      <label class="small text-muted mb-0" for="regione">Regione</label>
+      <select id="regione" name="regione" class="form-select border-0 shadow-none">
+        <option value="">Tutte le regioni</option>
+        {% for region in stats.regions %}
+          <option value="{{ region }}" {% if region == stats.selected_region %}selected{% endif %}>{{ region }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary rounded-pill px-4" type="submit">Filtra</button>
+    </form>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card metric-card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase fw-semibold">Donazioni visualizzate</div>
+          <div class="display-6 fw-bold">{{ "{:,}".format(stats.total_donations).replace(',', '.') }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card metric-card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase fw-semibold">Filtro attivo</div>
+          <div class="h4 mb-0 fw-bold">{{ stats.selected_region or "Tutte le regioni" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card chart-card shadow-sm h-100">
+        <div class="card-body">
+          <div class="chart-title">Andamento mensile delle donazioni</div>
+          <div class="chart-subtitle">Totale donazioni mese per mese nel filtro selezionato.</div>
+          <div class="chart-wrap">
+            <canvas id="monthlyDonationsChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card chart-card shadow-sm h-100">
+        <div class="card-body">
+          <div class="chart-title">Top 10 centri</div>
+          <div class="chart-subtitle">Grafico orizzontale con nomi abbreviati. Passa sopra le barre per vedere il nome completo.</div>
+          <div class="chart-wrap chart-wrap-top-centers">
+            <canvas id="topCentersChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card chart-card shadow-sm">
+        <div class="card-body">
+          <div class="chart-title">Totale donazioni per regione</div>
+          <div class="chart-subtitle">Confronto generale tra regioni, ordinato alfabeticamente.</div>
+          <div class="chart-wrap">
+            <canvas id="regionsChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  const monthlyLabels = {{ stats.months_labels|tojson }};
+  const monthlyValues = {{ stats.months_values|tojson }};
+  const regionLabels = {{ stats.region_labels|tojson }};
+  const regionValues = {{ stats.region_values|tojson }};
+  const centerLabels = {{ stats.center_labels|tojson }};
+  const centerValues = {{ stats.center_values|tojson }};
+
+  const shortenLabel = (label, maxLength = 28) => {
+    if (!label || label.length <= maxLength) return label;
+    return label.slice(0, maxLength - 1).trim() + '…';
+  };
+
+  const formatNumber = (value) => new Intl.NumberFormat('it-IT').format(value);
+
+  const sharedOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(33, 37, 41, .95)',
+        padding: 12,
+        cornerRadius: 10,
+        titleFont: { weight: '700' },
+        callbacks: {
+          label: (context) => `Donazioni: ${formatNumber(context.parsed.y ?? context.parsed.x)}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { maxRotation: 0, autoSkip: true }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(0,0,0,.06)' },
+        ticks: {
+          precision: 0,
+          callback: (value) => formatNumber(value)
+        }
+      }
+    }
+  };
+
+  new Chart(document.getElementById('monthlyDonationsChart'), {
+    type: 'line',
+    data: {
+      labels: monthlyLabels,
+      datasets: [{
+        label: 'Donazioni',
+        data: monthlyValues,
+        tension: 0.35,
+        fill: true,
+        borderWidth: 3,
+        pointRadius: 3,
+        pointHoverRadius: 6
+      }]
+    },
+    options: sharedOptions
+  });
+
+  new Chart(document.getElementById('topCentersChart'), {
+    type: 'bar',
+    data: {
+      labels: centerLabels.map(label => shortenLabel(label, 30)),
+      datasets: [{
+        label: 'Donazioni',
+        data: centerValues,
+        borderRadius: 10,
+        borderSkipped: false,
+        barThickness: 26,
+        maxBarThickness: 30
+      }]
+    },
+    options: {
+      ...sharedOptions,
+      indexAxis: 'y',
+      layout: { padding: { right: 12 } },
+      plugins: {
+        ...sharedOptions.plugins,
+        tooltip: {
+          ...sharedOptions.plugins.tooltip,
+          callbacks: {
+            title: (items) => centerLabels[items[0].dataIndex],
+            label: (context) => `Donazioni: ${formatNumber(context.parsed.x)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,.06)' },
+          ticks: {
+            precision: 0,
+            callback: (value) => formatNumber(value)
+          }
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            autoSkip: false,
+            font: { size: 12, weight: '600' }
+          }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('regionsChart'), {
+    type: 'bar',
+    data: {
+      labels: regionLabels,
+      datasets: [{
+        label: 'Donazioni',
+        data: regionValues,
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      ...sharedOptions,
+      scales: {
+        ...sharedOptions.scales,
+        x: {
+          ...sharedOptions.scales.x,
+          ticks: {
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: false
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

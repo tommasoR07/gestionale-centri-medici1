@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Flask / database locale
+instance/
+*.db
+.env
+
+# Sistema
+.DS_Store
+Thumbs.db

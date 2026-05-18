@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: gestionale-centri-medici1
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PREFERRED_URL_SCHEME
+        value: https

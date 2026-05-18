@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex align-items-start align-items-md-center justify-content-between flex-column flex-md-row gap-2 mb-3">
+  <div>
+    <h2 class="mb-0">Area Ospedale</h2>
+    <div class="text-muted small">
+      Ospedale: <strong>{{ hospital.name }}</strong> — {{ hospital.area }}
+    </div>
+  </div>
+
+  <form method="get" action="{{ url_for('admin_dashboard') }}" class="d-flex gap-2 align-items-center">
+    <label class="small text-muted" for="day">Giorno</label>
+    <input id="day" name="day" type="date" class="form-control" value="{{ sel_day.strftime('%Y-%m-%d') }}">
+    <button class="btn btn-outline-primary" type="submit">Vai</button>
+  </form>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">Slot del giorno</h5>
+      <span class="text-muted small">Stati: <span class="badge text-bg-success badge-status">available</span>
+        <span class="badge text-bg-secondary badge-status">booked</span>
+        <span class="badge text-bg-warning badge-status">blocked</span>
+      </span>
+    </div>
+
+    {% if slots %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Ora</th>
+              <th>Specialità</th>
+              <th>Prezzo (€)</th>
+              <th>Stato</th>
+              <th>Prenotato da</th>
+              <th class="text-end">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in slots %}
+              <tr>
+                <td class="fw-semibold">{{ s.at.strftime("%H:%M") }}</td>
+                <td>{{ s.specialty.area }}: {{ s.specialty.name }}</td>
+
+                <td style="min-width: 170px;">
+                  <form method="post" action="{{ url_for('admin_set_price', slot_id=s.id) }}" class="d-flex gap-2">
+                    <input name="price" class="form-control form-control-sm" value="{{ "%.2f"|format(s.price_cents/100) }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Salva</button>
+                  </form>
+                </td>
+
+                <td>
+                  {% if s.status == "available" %}
+                    <span class="badge text-bg-success badge-status">available</span>
+                  {% elif s.status == "booked" %}
+                    <span class="badge text-bg-secondary badge-status">booked</span>
+                  {% else %}
+                    <span class="badge text-bg-warning badge-status">blocked</span>
+                  {% endif %}
+                </td>
+
+                <td class="small text-muted">
+                  {% if s.user %}
+                    {{ s.user.email }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+
+                <td class="text-end" style="min-width: 340px;">
+                  <div class="d-flex gap-2 justify-content-end flex-wrap">
+                    <form method="post" action="{{ url_for('admin_set_status', slot_id=s.id) }}">
+                      <input type="hidden" name="status" value="available">
+                      <button class="btn btn-sm btn-success" type="submit">Disponibile</button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('admin_set_status', slot_id=s.id) }}">
+                      <input type="hidden" name="status" value="booked">
+                      <button class="btn btn-sm btn-secondary" type="submit">Occupato</button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('admin_set_status', slot_id=s.id) }}">
+                      <input type="hidden" name="status" value="blocked">
+                      <button class="btn btn-sm btn-warning" type="submit">Non disp.</button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('admin_delete_slot', slot_id=s.id) }}"
+                          onsubmit="return confirm('Vuoi davvero eliminare questo slot?');">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-light border mb-0">Nessuno slot trovato per questo giorno.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="mt-3 small text-muted">
+  Suggerimento: usa <strong>Occupato</strong> per segnare slot già presi (anche senza utente),
+  e <strong>Non disp.</strong> per bloccare temporaneamente lo slot.
+</div>
+{% endblock %}
